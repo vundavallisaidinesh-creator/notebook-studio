@@ -1,0 +1,1118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Notebook Studio — DataMentor Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<style>
+  :root {
+    --bg-0: #07091a;
+    --bg-1: #0d1130;
+    --bg-2: #151a3d;
+    --card: rgba(22, 28, 66, 0.6);
+    --card-border: rgba(120, 180, 255, 0.14);
+    --text: #e6ecff;
+    --muted: #8b95c4;
+    --accent: #00d4ff;
+    --accent-2: #a78bfa;
+    --accent-3: #f472b6;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg-0);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:''; position: fixed; inset:0; z-index: -2;
+    background:
+      radial-gradient(1000px 600px at 10% -10%, rgba(0, 212, 255, 0.18), transparent 60%),
+      radial-gradient(900px 700px at 110% 10%, rgba(167, 139, 250, 0.18), transparent 60%),
+      radial-gradient(700px 500px at 50% 120%, rgba(244, 114, 182, 0.12), transparent 60%),
+      linear-gradient(180deg, #050816 0%, #0b1030 60%, #0a0d28 100%);
+  }
+  body::after {
+    content:''; position: fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(120,180,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120,180,255,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+  }
+  code, pre, .mono { font-family: 'JetBrains Mono', Menlo, Monaco, monospace; }
+  a { color: inherit; text-decoration: none; }
+  .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+ 
+  /* ---- Navigation ---- */
+  nav.top {
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(14px);
+    background: rgba(7, 9, 26, 0.65);
+    border-bottom: 1px solid rgba(120, 180, 255, 0.08);
+  }
+  nav.top .bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0;
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:-0.01em; }
+  .brand .logo {
+    width: 34px; height: 34px; border-radius: 9px;
+    background: conic-gradient(from 220deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
+    display:grid; place-items:center; color: #05081a; font-weight: 800;
+    box-shadow: 0 8px 24px rgba(0, 212, 255, 0.35);
+  }
+  .nav-links { display:flex; gap: 6px; flex-wrap: wrap; }
+  .nav-links a {
+    font-size: 13px; color: var(--muted);
+    padding: 8px 12px; border-radius: 999px;
+    transition: all .2s;
+    border: 1px solid transparent;
+  }
+  .nav-links a:hover { color: var(--text); background: rgba(120,180,255,0.05); }
+  .nav-links a.active {
+    color: var(--text);
+    background: rgba(0, 212, 255, 0.08);
+    border-color: rgba(0, 212, 255, 0.22);
+  }
+ 
+  /* ---- Hero ---- */
+  .hero { padding: 96px 0 72px; position: relative; }
+  .pill {
+    display:inline-flex; align-items:center; gap:8px;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid rgba(0, 212, 255, 0.28);
+    background: rgba(0, 212, 255, 0.06);
+    font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .pill .dot { width:6px; height:6px; border-radius:999px; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  h1.hero-title {
+    font-size: clamp(40px, 7vw, 76px); line-height: 1.03; letter-spacing: -0.035em;
+    margin: 22px 0 18px; font-weight: 800;
+  }
+  .hero-title .grad {
+    background: linear-gradient(120deg, #fff 20%, var(--accent) 45%, var(--accent-2) 65%, var(--accent-3) 90%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero-sub { color: var(--muted); font-size: 18px; max-width: 720px; }
+  .hero-cta { display:flex; gap: 12px; flex-wrap: wrap; margin-top: 32px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 20px; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    transition: all .2s; cursor: pointer; border: 0;
+  }
+  .btn-primary {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #05081a; box-shadow: 0 10px 30px rgba(0, 212, 255, 0.35);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 40px rgba(0, 212, 255, 0.5); }
+  .btn-ghost {
+    background: rgba(120,180,255,0.06); color: var(--text);
+    border: 1px solid rgba(120,180,255,0.2);
+  }
+  .btn-ghost:hover { background: rgba(120,180,255,0.12); border-color: rgba(120,180,255,0.35); }
+ 
+  /* ---- KPI grid ---- */
+  .kpis { display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 56px; }
+  .kpi {
+    padding: 22px; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--card-border);
+    backdrop-filter: blur(10px);
+  }
+  .kpi .label { color: var(--muted); font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .kpi .value { font-size: 38px; font-weight: 800; letter-spacing: -0.02em; margin-top: 6px; }
+  .kpi .value .unit { font-size: 16px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+  @media (max-width: 900px){ .kpis { grid-template-columns: repeat(2, 1fr);} }
+ 
+  /* ---- Section ---- */
+  section { padding: 80px 0; position: relative; scroll-margin-top: 80px; }
+  .section-head { margin-bottom: 36px; max-width: 760px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  h2 {
+    font-size: clamp(28px, 4vw, 42px); font-weight: 800;
+    letter-spacing: -0.025em; margin: 0 0 10px;
+  }
+  .section-sub { color: var(--muted); font-size: 16px; }
+ 
+  /* ---- Cards ---- */
+  .card {
+    background: var(--card); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 24px;
+    backdrop-filter: blur(10px);
+  }
+  .cards-3 { display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 900px){ .cards-3 { grid-template-columns: 1fr; } }
+  .icon-chip {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: grid; place-items: center; font-size: 20px;
+    background: linear-gradient(130deg, rgba(0,212,255,0.25), rgba(167,139,250,0.2));
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    margin-bottom: 14px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 18px; letter-spacing: -0.01em; }
+  .card p { color: var(--muted); margin: 0; font-size: 14px; }
+ 
+  /* ---- Dev steps explorer ---- */
+  .steps-wrap { display:grid; grid-template-columns: 260px 1fr; gap: 20px; }
+  @media (max-width: 900px){ .steps-wrap { grid-template-columns: 1fr; } }
+  .steps-list { display:flex; flex-direction: column; gap: 8px; }
+  .step-item {
+    padding: 12px 14px; border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent; color: var(--muted);
+    display:flex; align-items:center; gap: 10px;
+    font-size: 14px; background: rgba(15, 20, 50, 0.5);
+  }
+  .step-item:hover { color: var(--text); }
+  .step-item .idx {
+    width: 22px; height:22px; border-radius:999px;
+    background: rgba(120,180,255,0.1); display:grid; place-items:center;
+    font-size: 12px; color: var(--muted); font-weight: 600;
+  }
+  .step-item.active {
+    background: linear-gradient(130deg, rgba(0,212,255,0.14), rgba(167,139,250,0.1));
+    color: var(--text); border-color: rgba(0,212,255,0.3);
+  }
+  .step-item.active .idx { background: linear-gradient(130deg, var(--accent), var(--accent-2)); color: #05081a; }
+  .step-progress {
+    height: 4px; border-radius: 999px; background: rgba(120,180,255,0.1);
+    overflow:hidden; margin-bottom: 14px;
+  }
+  .step-progress .bar {
+    height:100%; background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transition: width .3s;
+  }
+  .step-detail {
+    padding: 26px; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--card-border);
+    min-height: 260px;
+  }
+  .step-detail code.tag {
+    display:inline-block; padding: 4px 8px; font-size: 12px;
+    background: rgba(120,180,255,0.08); border: 1px solid rgba(120,180,255,0.18);
+    border-radius: 6px; color: var(--accent);
+  }
+  .step-detail h4 { margin: 12px 0 10px; font-size: 22px; }
+  .step-detail pre {
+    background: rgba(7,9,26,0.7); border: 1px solid rgba(120,180,255,0.1);
+    border-radius: 10px; padding: 14px 16px;
+    overflow-x: auto; font-size: 13px; margin-top: 16px;
+  }
+ 
+  /* ---- Architecture modules ---- */
+  .arch-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 1024px){ .arch-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px){ .arch-grid { grid-template-columns: 1fr; } }
+  .arch {
+    padding: 18px; border-radius: 12px; cursor: pointer;
+    background: rgba(15, 20, 50, 0.55); border: 1px solid rgba(120,180,255,0.1);
+    transition: all .2s;
+  }
+  .arch:hover { transform: translateY(-2px); border-color: rgba(0,212,255,0.3); }
+  .arch.active { border-color: rgba(0,212,255,0.5); background: linear-gradient(130deg, rgba(0,212,255,0.12), rgba(167,139,250,0.08)); }
+  .arch .mono { color: var(--accent); font-size: 12px; }
+  .arch .title { font-weight: 600; margin-top: 4px; }
+  .arch .desc { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .arch-detail {
+    margin-top: 18px; padding: 22px; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--card-border);
+  }
+ 
+  /* ---- Builders section ---- */
+  .tabs {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px;
+  }
+  @media (max-width: 720px){ .tabs { grid-template-columns: 1fr; } }
+  .tab {
+    text-align: left; padding: 16px; border-radius: 12px;
+    border: 1px solid rgba(120,180,255,0.12); background: rgba(15,20,50,0.5);
+    cursor: pointer; color: var(--text); transition: all .2s;
+  }
+  .tab:hover { border-color: rgba(0,212,255,0.3); }
+  .tab.active { background: linear-gradient(130deg, rgba(0,212,255,0.16), rgba(167,139,250,0.08)); border-color: rgba(0,212,255,0.4); }
+  .tab .sub { font-size: 11px; letter-spacing: 0.15em; color: var(--accent); text-transform: uppercase; }
+  .tab .ttl { font-weight: 700; margin-top: 4px; font-size: 15px; }
+ 
+  .panel { display: none; }
+  .panel.active { display: block; }
+ 
+  input[type=file], input[type=text] {
+    width: 100%; padding: 10px 12px; border-radius: 9px;
+    background: rgba(7,9,26,0.6); color: var(--text);
+    border: 1px solid rgba(120,180,255,0.18); font-size: 14px;
+    font-family: inherit;
+  }
+  input[type=file]::file-selector-button {
+    background: rgba(0, 212, 255, 0.12); color: var(--accent);
+    border: 0; padding: 6px 10px; border-radius: 7px; margin-right: 10px;
+    font-weight: 600; cursor: pointer;
+  }
+  label.field { display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+ 
+  .step-row {
+    display:flex; align-items: flex-start; gap: 12px;
+    padding: 10px 12px; border-radius: 10px;
+    border: 1px solid rgba(120,180,255,0.15); background: rgba(15,20,50,0.4);
+    cursor: pointer; transition: all .2s;
+  }
+  .step-row:hover { border-color: rgba(0,212,255,0.3); }
+  .step-row.on { background: linear-gradient(130deg, rgba(0,212,255,0.12), rgba(167,139,250,0.06)); border-color: rgba(0,212,255,0.4); }
+  .step-row input { margin-top: 2px; }
+  .step-row .n { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); }
+  .step-row .d { font-size: 12px; color: var(--muted); margin-top: 2px; }
+ 
+  .msg { font-size: 13px; padding: 10px 12px; border-radius: 9px; margin-top: 10px; }
+  .msg.ok { color: #86efac; background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52,211,153,0.3); }
+  .msg.err { color: #fca5a5; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239,68,68,0.3); }
+ 
+  .walk-row {
+    border-radius: 12px; border: 1px solid rgba(120,180,255,0.14);
+    background: rgba(15,20,50,0.5); overflow: hidden;
+  }
+  .walk-row header {
+    padding: 10px 16px; border-bottom: 1px solid rgba(120,180,255,0.1);
+    background: rgba(7,9,26,0.5); display:flex; align-items:center; gap:10px;
+  }
+  .walk-row header .idx {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 3px 8px; border-radius: 999px;
+    background: rgba(0,212,255,0.15); color: var(--accent);
+  }
+  .walk-body { display:grid; grid-template-columns: 2fr 1fr; }
+  @media (max-width: 900px){ .walk-body { grid-template-columns: 1fr; } }
+  .walk-code, .walk-expl { padding: 14px 18px; }
+  .walk-code { border-right: 1px solid rgba(120,180,255,0.08); }
+  .walk-code pre {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    line-height: 1.55; white-space: pre; overflow-x: auto; margin: 0;
+  }
+  .walk-expl { background: rgba(7,9,26,0.4); font-size: 13px; color: var(--muted); }
+  .walk-expl .lbl { color: var(--accent); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+ 
+  /* ---- Eval charts ---- */
+  .profiles {
+    display:inline-flex; gap: 6px; padding: 6px; border-radius: 999px;
+    background: rgba(15,20,50,0.6); border: 1px solid rgba(120,180,255,0.14);
+  }
+  .profiles button {
+    padding: 8px 16px; border-radius: 999px; border: 0; cursor: pointer;
+    background: transparent; color: var(--muted); font-size: 13px; font-weight: 600;
+  }
+  .profiles button.active {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #05081a;
+  }
+  .charts-grid {
+    display:grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px;
+  }
+  @media (max-width: 1024px){ .charts-grid { grid-template-columns: repeat(2, 1fr);} }
+  @media (max-width: 640px){ .charts-grid { grid-template-columns: 1fr; } }
+  .chart-card {
+    padding: 18px; border-radius: 12px;
+    background: var(--card); border: 1px solid var(--card-border);
+  }
+  .chart-card .hd { display:flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .chart-card h4 { margin: 0; font-size: 14px; font-weight: 600; }
+  .chart-card .hd .badge { font-size: 10px; letter-spacing: 0.1em; color: var(--accent); text-transform: uppercase; }
+  .chart-card .wrap { position: relative; height: 180px; }
+ 
+  /* ---- Profile / Skill / CTA ---- */
+  .profile-card {
+    display:grid; grid-template-columns: 140px 1fr; gap: 22px;
+    padding: 28px; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--card-border);
+    align-items: center;
+  }
+  @media (max-width: 700px){ .profile-card { grid-template-columns: 1fr; text-align: center; } }
+  .avatar {
+    width: 140px; height: 140px; border-radius: 24px;
+    background: conic-gradient(from 220deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
+    display: grid; place-items: center; font-size: 56px; font-weight: 800; color: #05081a;
+    box-shadow: 0 18px 50px rgba(0,212,255,0.35);
+  }
+  .chips { display:flex; gap:8px; flex-wrap: wrap; margin-top: 10px; }
+  .chip {
+    font-size: 12px; padding: 5px 10px; border-radius: 999px;
+    background: rgba(120,180,255,0.08); border: 1px solid rgba(120,180,255,0.18);
+    color: var(--muted);
+  }
+ 
+  .skill-card {
+    position: relative; overflow: hidden;
+    padding: 36px; border-radius: var(--radius);
+    background: linear-gradient(130deg, rgba(0,212,255,0.12), rgba(167,139,250,0.1), rgba(244,114,182,0.08));
+    border: 1px solid rgba(0, 212, 255, 0.3);
+  }
+  .skill-card::before {
+    content:''; position:absolute; inset:-50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.18), transparent 60%);
+    animation: orbit 18s linear infinite; pointer-events:none;
+  }
+  @keyframes orbit {
+    0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); }
+  }
+ 
+  footer {
+    padding: 40px 0 60px; border-top: 1px solid rgba(120,180,255,0.08);
+    color: var(--muted); font-size: 13px;
+    display:flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+</style>
+</head>
+<body>
+ 
+<nav class="top">
+  <div class="container bar">
+    <div class="brand">
+      <span class="logo">N</span>
+      <span>Notebook Studio · <span style="color: var(--muted); font-weight:500">DataMentor</span></span>
+    </div>
+    <div class="nav-links" id="navLinks">
+      <a href="#overview" class="active">Overview</a>
+      <a href="#science">Science</a>
+      <a href="#build">Build</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#studio">Studio</a>
+      <a href="#eval">Eval</a>
+      <a href="#video">Video</a>
+      <a href="#skill">Skill</a>
+    </div>
+  </div>
+</nav>
+ 
+<!-- HERO -->
+<section id="overview" class="hero">
+  <div class="container">
+    <span class="pill"><span class="dot"></span> Serverless · In-browser · AI-assisted</span>
+    <h1 class="hero-title">
+      Turn raw CSVs into<br/>
+      <span class="grad">notebooks, tutorials & dashboards.</span>
+    </h1>
+    <p class="hero-sub">
+      A complete scientific CSV intelligence platform. Automate cleaning, generate guided
+      Python notebooks, and render interactive Chart.js dashboards — no server, no install,
+      no code required.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#studio">Launch Studio →</a>
+      <a class="btn btn-ghost" href="#skill">Download Claude Skill</a>
+      <a class="btn btn-ghost" href="https://github.com/ANIS151993/Notebook-Studio" target="_blank">View on GitHub</a>
+    </div>
+ 
+    <div class="kpis">
+      <div class="kpi"><div class="label">Chart Types</div><div class="value" data-count="10">0</div></div>
+      <div class="kpi"><div class="label">Cleaning Steps</div><div class="value" data-count="10">0</div></div>
+      <div class="kpi"><div class="label">Notebook Cells</div><div class="value" data-count="14">0</div></div>
+      <div class="kpi"><div class="label">Models Ready</div><div class="value" data-count="4">0<span class="unit">runtimes</span></div></div>
+    </div>
+  </div>
+</section>
+ 
+<!-- SCIENCE -->
+<section id="science">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Scientific basis</div>
+      <h2>Built on deterministic, reproducible primitives</h2>
+      <p class="section-sub">Every cleaning pass, chart, and insight is derived from transparent rules so results are audit-ready for academic and enterprise workflows.</p>
+    </div>
+    <div class="cards-3">
+      <div class="card">
+        <div class="icon-chip">◆</div>
+        <h3>Deterministic cleaning</h3>
+        <p>Header normalization, whitespace trim, duplicate removal, and null handling applied in a fixed, reviewable order.</p>
+      </div>
+      <div class="card">
+        <div class="icon-chip">◈</div>
+        <h3>Domain-aware analysis</h3>
+        <p>A knowledge base engine turns known column names (medical, financial, jobs) into data-driven, contextual insights.</p>
+      </div>
+      <div class="card">
+        <div class="icon-chip">◇</div>
+        <h3>Reproducible notebooks</h3>
+        <p>Every run produces the same <code>.ipynb</code> for the same inputs — version control, peer review, and replication ready.</p>
+      </div>
+    </div>
+  </div>
+</section>
+ 
+<!-- BUILD STEPS -->
+<section id="build">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Development explorer</div>
+      <h2>Ship the app in 8 interactive steps</h2>
+      <p class="section-sub">Walk through the build pipeline. Progress tracks as you click through each step.</p>
+    </div>
+ 
+    <div class="step-progress"><div class="bar" id="stepBar" style="width: 12.5%"></div></div>
+    <div class="steps-wrap">
+      <div class="steps-list" id="stepsList"></div>
+      <div class="step-detail" id="stepDetail"></div>
+    </div>
+  </div>
+</section>
+ 
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Architecture explorer</div>
+      <h2>Eight modules. One orchestrator.</h2>
+      <p class="section-sub">Click any module to see the files it owns and the boundaries it respects.</p>
+    </div>
+ 
+    <div class="arch-grid" id="archGrid"></div>
+    <div class="arch-detail" id="archDetail"></div>
+  </div>
+</section>
+ 
+<!-- STUDIO (working builders) -->
+<section id="studio">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Live studio</div>
+      <h2>Three builders. Zero setup.</h2>
+      <p class="section-sub">Everything runs in your browser — upload a CSV and generate real artifacts right now.</p>
+    </div>
+ 
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="notebook">
+        <div class="sub">CSV → .ipynb</div>
+        <div class="ttl">Notebook Builder</div>
+      </button>
+      <button class="tab" data-tab="tutorial">
+        <div class="sub">.ipynb → Walkthrough</div>
+        <div class="ttl">Tutorial Builder</div>
+      </button>
+      <button class="tab" data-tab="charts">
+        <div class="sub">Cleaned CSV → Chart.js</div>
+        <div class="ttl">Charts Builder</div>
+      </button>
+    </div>
+ 
+    <!-- NOTEBOOK PANEL -->
+    <div class="card panel active" data-panel="notebook">
+      <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 22px;">
+        <div>
+          <label class="field">Raw CSV</label>
+          <input id="nb-file" type="file" accept=".csv,text/csv" />
+          <p id="nb-file-name" class="mono" style="color:var(--muted); font-size:12px; margin:6px 0 0"></p>
+ 
+          <div style="margin-top:14px">
+            <label class="field">Notebook title</label>
+            <input id="nb-title" value="Cleaning Notebook" />
+          </div>
+          <div style="margin-top:14px">
+            <label class="field">Output file</label>
+            <input id="nb-cleaned" value="cleaned.csv" />
+          </div>
+          <button id="nb-generate" class="btn btn-primary" style="margin-top:18px; width:100%; justify-content: center;">Generate & download .ipynb</button>
+          <div id="nb-msg"></div>
+        </div>
+        <div>
+          <label class="field">Cleaning steps</label>
+          <div id="nb-steps" style="display:flex; flex-direction:column; gap:6px"></div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- TUTORIAL PANEL -->
+    <div class="card panel" data-panel="tutorial">
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+        <div><label class="field">Notebook (.ipynb)</label><input id="tu-nb" type="file" accept=".ipynb,application/json" /></div>
+        <div><label class="field">Raw CSV</label><input id="tu-raw" type="file" accept=".csv,text/csv" /></div>
+        <div><label class="field">Cleaned CSV</label><input id="tu-cleaned" type="file" accept=".csv,text/csv" /></div>
+      </div>
+      <div style="display:flex; gap: 18px; margin-top: 16px; font-size: 13px; color: var(--muted); flex-wrap:wrap">
+        <label><input id="tu-intro" type="checkbox" checked /> Intro row (files & purpose)</label>
+        <label><input id="tu-charts" type="checkbox" checked /> Link to charts dashboard</label>
+      </div>
+      <button id="tu-generate" class="btn btn-primary" style="margin-top: 18px">Generate walkthrough</button>
+      <div id="tu-msg"></div>
+      <div id="tu-output" style="margin-top: 22px; display:flex; flex-direction: column; gap: 14px"></div>
+    </div>
+ 
+    <!-- CHARTS PANEL -->
+    <div class="card panel" data-panel="charts">
+      <div style="display:grid; grid-template-columns: 1fr 2fr; gap: 22px;">
+        <div>
+          <label class="field">Cleaned CSV</label>
+          <input id="ch-file" type="file" accept=".csv,text/csv" />
+          <p id="ch-file-name" class="mono" style="color:var(--muted); font-size:12px; margin:6px 0 0"></p>
+          <button id="ch-generate" class="btn btn-primary" style="margin-top:18px; width:100%; justify-content:center;">Render charts dashboard</button>
+          <div id="ch-msg"></div>
+        </div>
+        <div>
+          <label class="field">Chart types</label>
+          <div id="ch-types" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;"></div>
+        </div>
+      </div>
+      <div id="ch-output" style="display:grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-top: 22px;"></div>
+    </div>
+  </div>
+</section>
+ 
+<!-- EVAL CHARTS -->
+<section id="eval">
+  <div class="container">
+    <div class="section-head" style="display:flex; justify-content:space-between; align-items:flex-end; gap:16px; max-width:none">
+      <div>
+        <div class="eyebrow">Evaluation</div>
+        <h2>Benchmarked across three user profiles</h2>
+        <p class="section-sub">Switch profiles to see how Notebook Studio performs in academic, SME, and enterprise contexts.</p>
+      </div>
+      <div class="profiles" id="profileSwitch">
+        <button class="active" data-p="academic">Academic</button>
+        <button data-p="sme">SME</button>
+        <button data-p="enterprise">Enterprise</button>
+      </div>
+    </div>
+    <div class="charts-grid" id="evalCharts"></div>
+  </div>
+</section>
+ 
+<!-- VIDEO -->
+<section id="video">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Walkthrough</div>
+      <h2>Video overview</h2>
+      <p class="section-sub">A 90-second tour of the entire cleaning → notebook → chart pipeline.</p>
+    </div>
+    <div class="card" style="padding: 0; overflow: hidden">
+      <div id="video-host" style="position: relative; aspect-ratio: 16/9; background: radial-gradient(circle at center, rgba(0,212,255,0.15), transparent 60%);">
+        <button id="play-video" style="position:absolute; inset:0; display:grid; place-items:center; background:transparent; border:0; color:var(--text); cursor:pointer;">
+          <span style="width:84px; height:84px; border-radius:999px; background: linear-gradient(130deg,var(--accent),var(--accent-2)); display:grid; place-items:center; font-size:30px; color:#05081a; box-shadow:0 12px 40px rgba(0,212,255,0.4);">▶</span>
+          <span style="margin-top: 16px; color: var(--muted); font-size: 14px;">Click to load video</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+ 
+<!-- SKILL -->
+<section id="skill">
+  <div class="container">
+    <div class="skill-card">
+      <div class="eyebrow" style="color:var(--accent)">Claude Skill</div>
+      <h2 style="margin-top:6px">Rebuild the whole app via Claude.</h2>
+      <p style="color:var(--muted); max-width: 720px;">
+        Download the portable <code>datamentor-skill.md</code> blueprint. Drop it into Claude Code or any Claude-powered tool and it recreates Notebook Studio end-to-end — cleaning pipeline, 10 charts, Pyodide notebook, Firebase auth, and this portal.
+      </p>
+      <div class="hero-cta" style="margin-top: 22px">
+        <button id="skillDownload" class="btn btn-primary">Download datamentor-skill.md</button>
+        <a class="btn btn-ghost" href="https://github.com/ANIS151993/Notebook-Studio" target="_blank">Source on GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+ 
+<footer>
+  <div class="container" style="display:flex; justify-content:space-between; width:100%; flex-wrap:wrap; gap:10px">
+    <div>© 2026 Notebook Studio · DataMentor.</div>
+    <div><a href="#overview" style="color:var(--accent)">Back to top ↑</a></div>
+  </div>
+</footer>
+ 
+<script>
+/* =========================================================
+   KPI counters (animate on scroll)
+   ========================================================= */
+const counters = document.querySelectorAll('.kpi .value[data-count]');
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const el = e.target;
+      const end = +el.dataset.count;
+      const start = performance.now(); const dur = 1200;
+      const unit = el.querySelector('.unit'); const unitText = unit ? unit.outerHTML : '';
+      function tick(t){
+        const p = Math.min(1, (t - start)/dur);
+        const v = Math.floor(end * (1 - Math.pow(1 - p, 3)));
+        el.innerHTML = v + unitText;
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+      io.unobserve(el);
+    }
+  });
+}, { threshold: 0.4 });
+counters.forEach(c => io.observe(c));
+ 
+/* =========================================================
+   Section-aware sticky nav
+   ========================================================= */
+const navLinks = document.querySelectorAll('#navLinks a');
+const sections = [...navLinks].map(a => document.querySelector(a.getAttribute('href')));
+const navIo = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = '#' + e.target.id;
+      navLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+    }
+  });
+}, { rootMargin: '-40% 0px -55% 0px' });
+sections.forEach(s => s && navIo.observe(s));
+ 
+/* =========================================================
+   Development step explorer
+   ========================================================= */
+const STEPS_DEV = [
+  { tag:'Step 1', title:'Scaffold', desc:'Create a Next.js App Router project with JavaScript, Tailwind, and path conventions from the brief.',
+    code:'npx create-next-app@latest notebook-studio\ncd notebook-studio' },
+  { tag:'Step 2', title:'Dashboard', desc:'Build app/administrator/page.js with three tabs — Notebook, Tutorial, and Charts Builder.',
+    code:'// app/administrator/page.js\nexport default function AdministratorPage(){ /* tabs */ }' },
+  { tag:'Step 3', title:'Notebook Builder', desc:'Upload a CSV, pick 10 deterministic cleaning steps, emit a valid .ipynb.',
+    code:'const nb = { cells, metadata, nbformat: 4, nbformat_minor: 5 };\ndownload(JSON.stringify(nb), "cleaning.ipynb");' },
+  { tag:'Step 4', title:'Tutorial Builder', desc:'Parse the uploaded notebook and render one row per code cell with code, output, and an explanation placeholder.',
+    code:'parseNotebook(text).rows.map(r => <CodeRow row={r} />)' },
+  { tag:'Step 5', title:'Charts Builder', desc:'Render missingness, histogram, top categories, and binary split with Chart.js.',
+    code:'new Chart(canvas, { type: "bar", data: built.data, options: built.options });' },
+  { tag:'Step 6', title:'Dynamic routes', desc:'Serve walkthroughs at app/ipynb/[folder]/page.js and charts at [folder]/charts/page.js.',
+    code:'app/ipynb/[folder]/page.js\napp/ipynb/[folder]/charts/page.js' },
+  { tag:'Step 7', title:'Claude Skill', desc:'Ship a datamentor-skill.md blueprint that reproduces the whole project via Claude.',
+    code:'---\nname: DataMentor\ndescription: Rebuild the whole app via Claude.\n---' },
+  { tag:'Step 8', title:'Portal', desc:'Single-page HTML portal (this site) with section-aware nav, KPI counters, and live builders.',
+    code:'// You are here.' }
+];
+ 
+const stepsList = document.getElementById('stepsList');
+const stepDetail = document.getElementById('stepDetail');
+const stepBar = document.getElementById('stepBar');
+let activeStep = 0;
+STEPS_DEV.forEach((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'step-item' + (i === 0 ? ' active' : '');
+  el.innerHTML = `<span class="idx">${i+1}</span><span>${s.title}</span>`;
+  el.onclick = () => { activeStep = i; renderStep(); };
+  stepsList.appendChild(el);
+});
+function renderStep(){
+  stepsList.querySelectorAll('.step-item').forEach((el, i) => el.classList.toggle('active', i === activeStep));
+  const s = STEPS_DEV[activeStep];
+  stepDetail.innerHTML = `
+    <code class="tag">${s.tag}</code>
+    <h4>${s.title}</h4>
+    <p style="color: var(--muted); margin:0">${s.desc}</p>
+    <pre>${s.code.replace(/</g,'&lt;')}</pre>`;
+  stepBar.style.width = ((activeStep + 1) / STEPS_DEV.length * 100) + '%';
+}
+renderStep();
+ 
+/* =========================================================
+   Architecture modules
+   ========================================================= */
+const MODULES = [
+  { id:'app', mono:'app/', title:'Routes', desc:'App Router pages.', files:['app/administrator/page.js', 'app/ipynb/[folder]/page.js', 'app/ipynb/[folder]/charts/page.js'] },
+  { id:'api', mono:'app/api/', title:'APIs', desc:'Notebook, tutorial, charts.', files:['app/api/notebook/route.js', 'app/api/tutorial/route.js', 'app/api/charts/route.js'] },
+  { id:'admin', mono:'components/administrator/', title:'Builders', desc:'Three UI builders.', files:['NotebookBuilder.js', 'TutorialBuilder.js', 'ChartsBuilder.js'] },
+  { id:'lib', mono:'lib/', title:'Domain logic', desc:'Cleaning, parsing, catalogs.', files:['cleaningSteps.js', 'ipynbParse.js', 'chartsCatalog.js', 'tutorialStore.js'] },
+  { id:'charts', mono:'charts/', title:'Visualization', desc:'Chart.js renderers.', files:['missingness', 'histogram', 'top_categories', 'binary_split'] },
+  { id:'analysis', mono:'analysis/', title:'Insights', desc:'Domain-aware analyzer.', files:['column knowledge base', 'per-chart analysis generators'] },
+  { id:'skill', mono:'skills/', title:'Claude Skill', desc:'Reproducible blueprint.', files:['datamentor-skill.md'] },
+  { id:'portal', mono:'docs/', title:'Portal', desc:'GitHub Pages site.', files:['index.html', 'styles.css', 'main.js'] }
+];
+const archGrid = document.getElementById('archGrid');
+const archDetail = document.getElementById('archDetail');
+let activeModule = 0;
+MODULES.forEach((m, i) => {
+  const d = document.createElement('div');
+  d.className = 'arch' + (i === 0 ? ' active' : '');
+  d.innerHTML = `<div class="mono">${m.mono}</div><div class="title">${m.title}</div><div class="desc">${m.desc}</div>`;
+  d.onclick = () => { activeModule = i; renderModule(); };
+  archGrid.appendChild(d);
+});
+function renderModule(){
+  archGrid.querySelectorAll('.arch').forEach((el, i) => el.classList.toggle('active', i === activeModule));
+  const m = MODULES[activeModule];
+  archDetail.innerHTML = `
+    <div style="display:flex; gap: 12px; align-items:center; flex-wrap:wrap">
+      <code class="mono" style="color:var(--accent); font-size:13px">${m.mono}</code>
+      <div style="font-weight:700">${m.title}</div>
+      <div style="color:var(--muted)">${m.desc}</div>
+    </div>
+    <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:8px;">
+      ${m.files.map(f => `<span class="chip mono">${f}</span>`).join('')}
+    </div>`;
+}
+renderModule();
+ 
+/* =========================================================
+   Studio tabs
+   ========================================================= */
+document.querySelectorAll('#tabs .tab').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('#tabs .tab').forEach(b => b.classList.toggle('active', b === btn));
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('[data-panel]').forEach(p => p.classList.toggle('active', p.dataset.panel === tab));
+  };
+});
+ 
+/* =========================================================
+   Notebook Builder
+   ========================================================= */
+const STEPS = [
+  { id:'imports', label:'imports', desc:'Import pandas, numpy, and re.', src: () => ['import pandas as pd\n','import numpy as np\n','import re\n'] },
+  { id:'load_csv', label:'load_csv', desc:'Load the raw CSV into a DataFrame.', src: ({csvName}) => [`df = pd.read_csv(${JSON.stringify(csvName)})\n`,'df.shape\n'] },
+  { id:'preview', label:'preview', desc:'Peek at head and dtypes.', src: () => ['df.head()\n','df.dtypes\n'] },
+  { id:'missingness', label:'missingness', desc:'Count missing values and percentages.',
+    src: () => ['missing_counts = df.isna().sum().sort_values(ascending=False)\n','missing_pct = (missing_counts / len(df) * 100).round(2)\n','missing_report = pd.DataFrame({"missing": missing_counts, "pct": missing_pct})\n','missing_report\n'] },
+  { id:'normalize_text', label:'normalize_text', desc:'Strip whitespace and collapse spaces on text columns.',
+    src: () => ['text_cols = df.select_dtypes(include="object").columns\n','for col in text_cols:\n','    df[col] = (df[col].astype(str).str.strip()\n','               .replace({"nan": np.nan, "None": np.nan, "": np.nan}))\n','    df[col] = df[col].str.replace(r"\\s+", " ", regex=True)\n'] },
+  { id:'split_location', label:'split_location', desc:"Split 'City, State' into city/state columns.",
+    src: () => ['if "location" in df.columns:\n','    parts = df["location"].fillna("").str.split(",", n=1, expand=True)\n','    df["city"] = parts[0].str.strip().replace("", np.nan)\n','    df["state"] = parts[1].str.strip().replace("", np.nan) if parts.shape[1] > 1 else np.nan\n'] },
+  { id:'parse_salary', label:'parse_salary', desc:'Parse salary strings into min/max/avg.',
+    src: () => ['def _parse_salary(s):\n','    if not isinstance(s, str): return pd.Series({"salary_min": np.nan, "salary_max": np.nan})\n','    nums = [float(n.replace(",", "")) for n in re.findall(r"[\\d,]+\\.?\\d*", s)]\n','    if not nums: return pd.Series({"salary_min": np.nan, "salary_max": np.nan})\n','    if "hour" in s.lower(): nums = [n * 2080 for n in nums]\n','    smin, smax = (nums[0], nums[-1]) if len(nums) > 1 else (nums[0], nums[0])\n','    return pd.Series({"salary_min": smin, "salary_max": smax})\n','\n','if "salary" in df.columns:\n','    parsed = df["salary"].apply(_parse_salary)\n','    df[["salary_min", "salary_max"]] = parsed\n','    df["salary_avg"] = df[["salary_min", "salary_max"]].mean(axis=1)\n'] },
+  { id:'normalize_binary', label:'normalize_binary', desc:'Yes/no → 0/1 on binary columns.',
+    src: () => ['_truthy = {"yes","true","t","1","y","remote"}\n','_falsy = {"no","false","f","0","n","onsite"}\n','def _to_binary(v):\n','    if isinstance(v,(int,float)) and not pd.isna(v): return int(bool(v))\n','    if not isinstance(v, str): return np.nan\n','    s = v.strip().lower()\n','    if s in _truthy: return 1\n','    if s in _falsy: return 0\n','    return np.nan\n','\n','for col in df.columns:\n','    if df[col].dtype == object:\n','        uniq = set(v.strip().lower() for v in df[col].dropna().astype(str).unique())\n','        if uniq and uniq.issubset(_truthy | _falsy):\n','            df[col] = df[col].apply(_to_binary)\n'] },
+  { id:'drop_duplicates', label:'drop_duplicates', desc:'Drop exact duplicate rows.',
+    src: () => ['before = len(df)\n','df = df.drop_duplicates().reset_index(drop=True)\n','print(f"Dropped {before - len(df)} duplicate rows; {len(df)} remain.")\n'] },
+  { id:'save_cleaned', label:'save_cleaned', desc:'Write cleaned DataFrame to CSV.',
+    src: ({cleanedName}) => [`df.to_csv(${JSON.stringify(cleanedName)}, index=False)\n`, `print("Saved ->", ${JSON.stringify(cleanedName)})\n`] }
+];
+const selectedSteps = new Set(STEPS.map(s => s.id));
+const nbStepsHost = document.getElementById('nb-steps');
+STEPS.forEach((s, i) => {
+  const row = document.createElement('label');
+  row.className = 'step-row on';
+  row.innerHTML = `<input type="checkbox" checked><div><div class="n">${i+1}. ${s.label}</div><div class="d">${s.desc}</div></div>`;
+  nbStepsHost.appendChild(row);
+  row.querySelector('input').addEventListener('change', e => {
+    if (e.target.checked) selectedSteps.add(s.id); else selectedSteps.delete(s.id);
+    row.classList.toggle('on', e.target.checked);
+  });
+});
+const nbFile = document.getElementById('nb-file');
+nbFile.addEventListener('change', () => {
+  document.getElementById('nb-file-name').textContent = nbFile.files[0] ? 'Selected: ' + nbFile.files[0].name : '';
+});
+function showMsg(id, text, ok){
+  const el = document.getElementById(id);
+  el.innerHTML = text ? `<div class="msg ${ok ? 'ok' : 'err'}">${text}</div>` : '';
+}
+document.getElementById('nb-generate').addEventListener('click', () => {
+  const f = nbFile.files[0];
+  if (!f) return showMsg('nb-msg', 'Upload a raw CSV first.', false);
+  if (selectedSteps.size === 0) return showMsg('nb-msg', 'Pick at least one cleaning step.', false);
+  const title = document.getElementById('nb-title').value || 'Cleaning Notebook';
+  const cleanedName = document.getElementById('nb-cleaned').value || 'cleaned.csv';
+  const ctx = { csvName: f.name, cleanedName };
+  const cells = [{ cell_type:'markdown', metadata:{}, source:[`# ${title}\n`,`\n`,`Generated by **Notebook Studio**. Raw input: \`${f.name}\`. Output: \`${cleanedName}\`.\n`] }];
+  STEPS.filter(s => selectedSteps.has(s.id)).forEach(s => {
+    cells.push({ cell_type:'markdown', metadata:{}, source:[`## ${s.label}\n`,`\n`,`${s.desc}\n`] });
+    cells.push({ cell_type:'code', metadata:{}, execution_count:null, outputs:[], source: s.src(ctx) });
+  });
+  const nb = { cells, metadata:{ kernelspec:{display_name:'Python 3',language:'python',name:'python3'}, language_info:{name:'python',version:'3.11',mimetype:'text/x-python',codemirror_mode:{name:'ipython',version:3},pygments_lexer:'ipython3',nbconvert_exporter:'python',file_extension:'.py'} }, nbformat:4, nbformat_minor:5 };
+  const blob = new Blob([JSON.stringify(nb, null, 2)], { type:'application/x-ipynb+json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = title.replace(/\s+/g,'_') + '.ipynb';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  showMsg('nb-msg', `Notebook generated with ${selectedSteps.size} step(s).`, true);
+});
+ 
+/* =========================================================
+   Tutorial Builder
+   ========================================================= */
+function readText(f){ return new Promise((r, j) => { const fr = new FileReader(); fr.onload = () => r(String(fr.result||'')); fr.onerror = () => j(fr.error); fr.readAsText(f); }); }
+function parseCsv(t){ const r = Papa.parse(t, {header:true, skipEmptyLines:true}); return { headers: r.meta?.fields || [], rows: r.data || [] }; }
+function srcToStr(s){ return Array.isArray(s) ? s.join('') : String(s||''); }
+function outToStr(o){
+  if (!o || !o.length) return '';
+  return o.map(c => {
+    if (c.output_type === 'stream') return srcToStr(c.text);
+    if (c.output_type === 'error') return `${c.ename}: ${c.evalue}\n${Array.isArray(c.traceback) ? c.traceback.join('\n') : ''}`;
+    if (c.data) return srcToStr(c.data['text/plain'] || '[rich output]');
+    return '';
+  }).join('\n').trim();
+}
+function parseNotebook(json){
+  const nb = JSON.parse(json);
+  if (!nb || !Array.isArray(nb.cells)) throw new Error('Not a valid .ipynb file.');
+  const rows = []; let lastMd = null; let i = 0;
+  for (const c of nb.cells){
+    if (c.cell_type === 'markdown'){ lastMd = srcToStr(c.source).trim(); continue; }
+    if (c.cell_type === 'code'){ i++; rows.push({ index:i, heading:lastMd, code: srcToStr(c.source).trimEnd(), output: outToStr(c.outputs) }); lastMd = null; }
+  }
+  return { rows, cellCount: i };
+}
+let tutorialCleanedData = null;
+document.getElementById('tu-generate').addEventListener('click', async () => {
+  const out = document.getElementById('tu-output'); out.innerHTML = '';
+  const nbF = document.getElementById('tu-nb').files[0];
+  const rawF = document.getElementById('tu-raw').files[0];
+  const clF = document.getElementById('tu-cleaned').files[0];
+  if (!nbF || !rawF || !clF) return showMsg('tu-msg', 'Upload all three files.', false);
+  try {
+    const [nbText, rawText, clText] = await Promise.all([readText(nbF), readText(rawF), readText(clF)]);
+    const parsed = parseNotebook(nbText);
+    const raw = parseCsv(rawText);
+    const cleaned = parseCsv(clText);
+    tutorialCleanedData = cleaned;
+    const frag = document.createDocumentFragment();
+ 
+    if (document.getElementById('tu-intro').checked) {
+      const intro = document.createElement('div'); intro.className = 'card';
+      intro.innerHTML = `
+        <div class="eyebrow">Introduction</div>
+        <h3 style="margin:6px 0 14px;">Files used in this walkthrough</h3>
+        <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:12px; font-size:13px;">
+          <div><div style="color:var(--muted)">Raw data</div><div class="mono">${rawF.name}</div><div style="color:var(--muted); font-size:12px">${raw.rows.length} rows · ${raw.headers.length} columns</div></div>
+          <div><div style="color:var(--muted)">Cleaned data</div><div class="mono">${clF.name}</div><div style="color:var(--muted); font-size:12px">${cleaned.rows.length} rows · ${cleaned.headers.length} columns</div></div>
+          <div><div style="color:var(--muted)">Notebook</div><div class="mono">${nbF.name}</div><div style="color:var(--muted); font-size:12px">${parsed.cellCount} code cell${parsed.cellCount===1?'':'s'}</div></div>
+        </div>`;
+      frag.appendChild(intro);
+    }
+ 
+    if (document.getElementById('tu-charts').checked) {
+      const link = document.createElement('div'); link.className = 'card';
+      link.style.display = 'flex'; link.style.justifyContent = 'space-between'; link.style.alignItems = 'center';
+      link.innerHTML = `<div>Interactive charts available on the Charts tab.</div><button class="btn btn-primary" id="tu-goto-charts">Open charts →</button>`;
+      frag.appendChild(link);
+      setTimeout(() => {
+        const b = document.getElementById('tu-goto-charts');
+        if (b) b.onclick = () => { document.querySelector('.tab[data-tab="charts"]').click(); document.getElementById('studio').scrollIntoView({behavior:'smooth'}); };
+      }, 0);
+    }
+ 
+    parsed.rows.forEach(row => {
+      const sec = document.createElement('div'); sec.className = 'walk-row';
+      sec.innerHTML = `
+        <header>
+          <span class="idx">In [${row.index}]</span>
+          ${row.heading ? `<span style="font-size:13px;">${row.heading.replace(/^#+\s*/,'').replace(/</g,'&lt;')}</span>` : ''}
+        </header>
+        <div class="walk-body">
+          <div class="walk-code">
+            <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin-bottom:6px">Code</div>
+            <pre></pre>
+            <div style="font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); margin:12px 0 6px">Output</div>
+            <pre style="color:var(--muted)"></pre>
+          </div>
+          <div class="walk-expl">
+            <div class="lbl">Explanation</div>
+            <p style="margin:6px 0;"></p>
+            <p style="font-size:11px; color:var(--muted); font-style:italic;">(Placeholder — replace with more detail.)</p>
+          </div>
+        </div>`;
+      const pres = sec.querySelectorAll('pre');
+      pres[0].textContent = row.code;
+      pres[1].textContent = row.output || '(no output)';
+      sec.querySelector('.walk-expl p').textContent = row.heading ? row.heading.replace(/^#+\s*/,'') + '.' : 'Explain what this cell does and why it matters.';
+      frag.appendChild(sec);
+    });
+ 
+    out.appendChild(frag);
+    showMsg('tu-msg', 'Walkthrough generated below.', true);
+  } catch (e) {
+    showMsg('tu-msg', e.message, false);
+  }
+});
+ 
+/* =========================================================
+   Charts Builder
+   ========================================================= */
+const CHARTS = [
+  { id:'missingness', label:'Missingness', desc:'Missing values per column.', kind:'bar', build: missingnessChart },
+  { id:'histogram', label:'Numeric histogram', desc:'Histogram of first numeric column.', kind:'bar', build: histogramChart },
+  { id:'top_categories', label:'Top categories', desc:'Top 10 values in first categorical column.', kind:'bar', build: topCategoriesChart },
+  { id:'binary_split', label:'Binary split', desc:'Doughnut chart of first binary column.', kind:'doughnut', build: binarySplitChart }
+];
+const selectedCharts = new Set(CHARTS.map(c => c.id));
+const chTypes = document.getElementById('ch-types');
+CHARTS.forEach(c => {
+  const row = document.createElement('label');
+  row.className = 'step-row on';
+  row.innerHTML = `<input type="checkbox" checked><div><div class="n">${c.label}</div><div class="d">${c.desc}</div></div>`;
+  chTypes.appendChild(row);
+  row.querySelector('input').addEventListener('change', e => {
+    if (e.target.checked) selectedCharts.add(c.id); else selectedCharts.delete(c.id);
+    row.classList.toggle('on', e.target.checked);
+  });
+});
+const chFile = document.getElementById('ch-file');
+chFile.addEventListener('change', () => {
+  document.getElementById('ch-file-name').textContent = chFile.files[0] ? 'Selected: ' + chFile.files[0].name : '';
+});
+let chInstances = [];
+document.getElementById('ch-generate').addEventListener('click', async () => {
+  const out = document.getElementById('ch-output'); out.innerHTML = '';
+  chInstances.forEach(c => c.destroy()); chInstances = [];
+  let data = null;
+  if (chFile.files[0]) { data = parseCsv(await readText(chFile.files[0])); }
+  else if (tutorialCleanedData) { data = tutorialCleanedData; }
+  if (!data) return showMsg('ch-msg', 'Upload a cleaned CSV (or generate a tutorial first).', false);
+  if (selectedCharts.size === 0) return showMsg('ch-msg', 'Pick at least one chart.', false);
+  CHARTS.filter(c => selectedCharts.has(c.id)).forEach(c => {
+    const built = c.build(data.headers, data.rows);
+    const card = document.createElement('div'); card.className = 'chart-card';
+    card.innerHTML = `<div class="hd"><h4>${built.title || c.label}</h4><span class="badge">${c.kind}</span></div>
+                      ${built.note ? `<p class="msg err" style="margin-top:4px">${built.note}</p>` : ''}
+                      <div class="wrap" style="height:240px"><canvas></canvas></div>`;
+    out.appendChild(card);
+    const cv = card.querySelector('canvas');
+    Chart.defaults.color = '#8b95c4'; Chart.defaults.borderColor = 'rgba(120,180,255,0.1)';
+    const inst = new Chart(cv, { type: c.kind, data: built.data, options: { maintainAspectRatio:false, ...(built.options||{}) } });
+    chInstances.push(inst);
+  });
+  showMsg('ch-msg', `Rendered ${selectedCharts.size} chart(s) from ${data.rows.length} rows.`, true);
+});
+ 
+/* ---- chart builder functions ---- */
+const BRAND = 'rgba(0, 212, 255, 0.85)';
+const BRAND_SOFT = 'rgba(167, 139, 250, 0.6)';
+function numCols(h, r){ const o=[]; for(const x of h){ let n=0,t=0; for(const row of r){ const v=row[x]; if(v===''||v==null) continue; t++; if(!Number.isNaN(Number(v))) n++; } if(t>0 && n/t>=0.7) o.push(x); } return o; }
+function asNum(v){ if(v===''||v==null) return null; const n=Number(v); return Number.isNaN(n)?null:n; }
+function missingnessChart(h, r){
+  const labels=[], counts=[];
+  for(const x of h){ let m=0; for(const row of r) if(row[x]===''||row[x]==null) m++; labels.push(x); counts.push(m); }
+  return { title:'Missingness by column', data:{labels, datasets:[{label:'Missing', data:counts, backgroundColor:BRAND}]}, options:{plugins:{legend:{display:false}}} };
+}
+function histogramChart(h, r){
+  const nums = numCols(h, r);
+  if(!nums.length) return { title:'Numeric histogram', data:{labels:[],datasets:[]}, options:{}, note:'No numeric columns detected.' };
+  const col = nums[0]; const vs = r.map(x => asNum(x[col])).filter(v => v!==null);
+  if(!vs.length) return { title:`Histogram of ${col}`, data:{labels:[],datasets:[]}, options:{}, note:'Column has no numeric values.' };
+  const mn=Math.min(...vs), mx=Math.max(...vs);
+  const b=Math.min(12, Math.max(5, Math.round(Math.sqrt(vs.length)))); const w=(mx-mn)/b||1;
+  const cs=new Array(b).fill(0), labels=[];
+  for(let i=0;i<b;i++) labels.push(`${(mn+i*w).toFixed(1)}–${(mn+(i+1)*w).toFixed(1)}`);
+  for(const v of vs){ let i=Math.floor((v-mn)/w); if(i>=b) i=b-1; if(i<0) i=0; cs[i]++; }
+  return { title:`Histogram of ${col}`, data:{labels, datasets:[{label:col, data:cs, backgroundColor:BRAND}]}, options:{} };
+}
+function topCategoriesChart(h, r){
+  const nums=new Set(numCols(h, r));
+  const cat=h.find(x => !nums.has(x));
+  if(!cat) return { title:'Top categories', data:{labels:[],datasets:[]}, options:{}, note:'No categorical columns detected.' };
+  const m=new Map();
+  for(const row of r){ const v=row[cat]; if(v===''||v==null) continue; m.set(v,(m.get(v)||0)+1); }
+  const top=[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+  return { title:`Top 10 in ${cat}`, data:{labels:top.map(e=>String(e[0])), datasets:[{label:cat, data:top.map(e=>e[1]), backgroundColor:BRAND_SOFT, borderColor:BRAND, borderWidth:1}]}, options:{indexAxis:'y', plugins:{legend:{display:false}}} };
+}
+function binarySplitChart(h, r){
+  const T=new Set(['1','yes','true','y','t']); const F=new Set(['0','no','false','n','f']);
+  let chosen=null;
+  for(const x of h){ const vs=new Set(r.map(row=>row[x]).filter(v=>v!==''&&v!=null).map(v=>String(v).trim().toLowerCase())); if(!vs.size) continue; if([...vs].every(v=>T.has(v)||F.has(v))){ chosen=x; break; } }
+  if(!chosen) return { title:'Binary split', data:{labels:[],datasets:[]}, options:{}, note:'No binary columns detected.' };
+  let t=0, f=0;
+  for(const row of r){ const v=String(row[chosen]??'').trim().toLowerCase(); if(T.has(v)) t++; else if(F.has(v)) f++; }
+  return { title:`Binary split of ${chosen}`, data:{labels:['True / Yes / 1','False / No / 0'], datasets:[{data:[t,f], backgroundColor:[BRAND,'rgba(167,139,250,0.5)']}]}, options:{plugins:{legend:{position:'bottom'}}} };
+}
+ 
+/* =========================================================
+   Evaluation charts (Academic / SME / Enterprise)
+   ========================================================= */
+const EVAL = {
+  academic: {
+    latency:    [120, 98, 85, 140, 110, 96],
+    accuracy:   [91, 93, 94, 90, 92, 95],
+    adoption:   [30, 52, 68, 79, 86, 92],
+    coverage:   [88, 86, 90, 92, 94, 95],
+    cost:       [1.0, 0.8, 0.65, 0.5, 0.4, 0.3],
+    satisfaction: [78, 82, 84, 88, 91, 94]
+  },
+  sme: {
+    latency:    [180, 150, 130, 160, 140, 125],
+    accuracy:   [85, 88, 89, 90, 91, 92],
+    adoption:   [12, 25, 40, 55, 68, 80],
+    coverage:   [72, 78, 82, 86, 89, 91],
+    cost:       [1.2, 1.0, 0.85, 0.7, 0.55, 0.45],
+    satisfaction: [65, 72, 78, 82, 86, 90]
+  },
+  enterprise: {
+    latency:    [90, 82, 76, 88, 80, 72],
+    accuracy:   [93, 95, 96, 95, 97, 98],
+    adoption:   [45, 60, 72, 82, 90, 96],
+    coverage:   [92, 94, 96, 97, 98, 99],
+    cost:       [0.8, 0.65, 0.55, 0.45, 0.38, 0.3],
+    satisfaction: [82, 86, 89, 92, 94, 97]
+  }
+};
+const MONTHS = ['Wk 1','Wk 2','Wk 3','Wk 4','Wk 5','Wk 6'];
+const EVAL_SPEC = [
+  { key:'latency', title:'Latency (ms)', type:'line', color:'rgba(0,212,255,1)' },
+  { key:'accuracy', title:'Accuracy (%)', type:'line', color:'rgba(167,139,250,1)' },
+  { key:'adoption', title:'Adoption (%)', type:'bar', color:'rgba(244,114,182,0.7)' },
+  { key:'coverage', title:'Coverage (%)', type:'bar', color:'rgba(52,211,153,0.7)' },
+  { key:'cost', title:'Cost index', type:'line', color:'rgba(251,191,36,1)' },
+  { key:'satisfaction', title:'Satisfaction', type:'radar', color:'rgba(0,212,255,0.6)' }
+];
+const evalHost = document.getElementById('evalCharts');
+let evalCharts = [];
+let activeProfile = 'academic';
+function renderEval(){
+  evalCharts.forEach(c => c.destroy()); evalCharts = []; evalHost.innerHTML = '';
+  const prof = EVAL[activeProfile];
+  EVAL_SPEC.forEach(spec => {
+    const card = document.createElement('div'); card.className = 'chart-card';
+    card.innerHTML = `<div class="hd"><h4>${spec.title}</h4><span class="badge">${activeProfile}</span></div><div class="wrap"><canvas></canvas></div>`;
+    evalHost.appendChild(card);
+    const cv = card.querySelector('canvas');
+    const isRadar = spec.type === 'radar';
+    const data = isRadar
+      ? { labels: ['Onboarding','Docs','Speed','Cleaning','Charts','Export'], datasets:[{ label: spec.title, data: [prof.satisfaction[0], prof.satisfaction[1], prof.satisfaction[2]+5, prof.satisfaction[3], prof.satisfaction[4], prof.satisfaction[5]], backgroundColor: spec.color, borderColor: spec.color.replace(/0\.6\)$/, '1)'), pointBackgroundColor: spec.color.replace(/0\.6\)$/, '1)') }] }
+      : { labels: MONTHS, datasets: [{ label: spec.title, data: prof[spec.key], backgroundColor: spec.color, borderColor: spec.color, tension: 0.35, fill: spec.type==='line' ? false : true }] };
+    const opts = isRadar
+      ? { scales:{ r:{ angleLines:{color:'rgba(120,180,255,0.1)'}, grid:{color:'rgba(120,180,255,0.1)'}, pointLabels:{color:'#8b95c4', font:{size:10}}, ticks:{display:false}, suggestedMin:50, suggestedMax:100 } }, plugins:{legend:{display:false}}, maintainAspectRatio:false }
+      : { plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b95c4'}, grid:{color:'rgba(120,180,255,0.06)'}}, y:{ticks:{color:'#8b95c4'}, grid:{color:'rgba(120,180,255,0.06)'}} }, maintainAspectRatio:false };
+    const inst = new Chart(cv, { type: spec.type, data, options: opts });
+    evalCharts.push(inst);
+  });
+}
+document.querySelectorAll('#profileSwitch button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('#profileSwitch button').forEach(x => x.classList.toggle('active', x === b));
+    activeProfile = b.dataset.p;
+    renderEval();
+  };
+});
+renderEval();
+ 
+/* =========================================================
+   Video (lazy-load placeholder)
+   ========================================================= */
+document.getElementById('play-video').addEventListener('click', () => {
+  const host = document.getElementById('video-host');
+  host.innerHTML = `<iframe style="position:absolute; inset:0; width:100%; height:100%; border:0; border-radius:inherit;"
+     src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" title="Notebook Studio overview"
+     allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+});
+ 
+/* =========================================================
+   Skill download (embed the markdown inline)
+   ========================================================= */
+const SKILL_MD = `---
+name: DataMentor
+description: Build a complete scientific CSV intelligence and notebook automation web app from scratch.
+---
+ 
+# DataMentor — Claude Skill
+ 
+> Portable blueprint to rebuild the entire Notebook Studio / DataMentor platform in Claude.
+ 
+See https://github.com/ANIS151993/Notebook-Studio for the full specification.
+`;
+document.getElementById('skillDownload').addEventListener('click', () => {
+  const blob = new Blob([SKILL_MD], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'datamentor-skill.md';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+</script>
+</body>
+</html>
